@@ -44,6 +44,17 @@ export default function CategoriesPage() {
     // Initialize storage and load data
     initializeStorage();
     loadCategories();
+
+    // Listen for storage updates from other components
+    const handleStorageUpdate = () => {
+      loadCategories();
+    };
+
+    window.addEventListener('storage-updated', handleStorageUpdate);
+    
+    return () => {
+      window.removeEventListener('storage-updated', handleStorageUpdate);
+    };
   }, [router]);
 
   const loadCategories = () => {
@@ -74,6 +85,14 @@ export default function CategoriesPage() {
     setCategories([...categories, { ...newCategory, _count: { itineraries: 0 } }]);
     setFormData({ name: '', isActive: true });
     setShowAddModal(false);
+    
+    // Trigger storage update event to notify other pages
+    window.dispatchEvent(new CustomEvent('storage-updated', { 
+      detail: { 
+        type: 'categories', 
+        data: categoryStorage.getCategories() 
+      } 
+    }));
   };
 
   const handleEditCategory = () => {
@@ -95,26 +114,37 @@ export default function CategoriesPage() {
     setFormData({ name: '', isActive: true });
     setShowEditModal(false);
     setSelectedCategory(null);
+    
+    // Trigger storage update event to notify other pages
+    window.dispatchEvent(new CustomEvent('storage-updated', { 
+      detail: { 
+        type: 'categories', 
+        data: categoryStorage.getCategories() 
+      } 
+    }));
   };
 
   const handleDeleteCategory = (id: string) => {
     const categoryItineraries = itineraries.filter(i => i.categoryId === id);
     
     if (categoryItineraries.length > 0) {
-      if (!confirm(`This category has ${categoryItineraries.length} itineraries. Deleting it will also remove these itineraries. Continue?`)) {
+      if (!confirm(`This category has ${categoryItineraries.length} itineraries. Deleting it will move these itineraries to "Unknown Category". Continue?`)) {
         return;
       }
-      // Remove itineraries in this category
-      categoryItineraries.forEach(itinerary => {
-        itineraryStorage.deleteItinerary(itinerary.id);
-      });
-      setItineraries(itineraries.filter(i => i.categoryId !== id));
     } else {
       if (!confirm('Are you sure you want to delete this category?')) return;
     }
 
     categoryStorage.deleteCategory(id);
     setCategories(categories.filter(cat => cat.id !== id));
+    
+    // Trigger storage update event to notify other pages
+    window.dispatchEvent(new CustomEvent('storage-updated', { 
+      detail: { 
+        type: 'categories', 
+        data: categoryStorage.getCategories() 
+      } 
+    }));
   };
 
   const openEditModal = (category: Category) => {
@@ -151,7 +181,12 @@ export default function CategoriesPage() {
     setCategories(updatedCategories);
     
     // Trigger storage update event
-    window.dispatchEvent(new CustomEvent('storage-updated', { detail: { type: 'itineraries' } }));
+    window.dispatchEvent(new CustomEvent('storage-updated', { 
+      detail: { 
+        type: 'itineraries', 
+        data: itineraryStorage.getItineraries() 
+      } 
+    }));
   };
 
   // Listen for storage changes to update counts in real-time

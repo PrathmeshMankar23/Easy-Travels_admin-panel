@@ -73,6 +73,16 @@ export const categoryStorage = {
     if (filteredCategories.length === categories.length) return false;
     
     categoryStorage.setCategories(filteredCategories);
+    
+    // Update itineraries that had this category to "Unknown Category"
+    const itineraries = itineraryStorage.getItineraries();
+    const updatedItineraries = itineraries.map(itinerary => 
+      itinerary.categoryId === id 
+        ? { ...itinerary, categoryId: 'unknown' }
+        : itinerary
+    );
+    itineraryStorage.setItineraries(updatedItineraries);
+    
     return true;
   }
 };
@@ -135,13 +145,16 @@ export const getItinerariesWithCategories = () => {
   const itineraries = itineraryStorage.getItineraries();
   const categories = categoryStorage.getCategories();
   
-  return itineraries.map(itinerary => ({
-    ...itinerary,
-    category: {
-      id: itinerary.categoryId,
-      name: getCategoryName(itinerary.categoryId)
-    }
-  }));
+  return itineraries.map(itinerary => {
+    const category = categories.find(cat => cat.id === itinerary.categoryId);
+    return {
+      ...itinerary,
+      category: {
+        id: itinerary.categoryId,
+        name: category?.name || 'Unknown Category'
+      }
+    };
+  });
 };
 
 // Default data
@@ -151,7 +164,8 @@ function getDefaultCategories(): Category[] {
     { id: '2', name: 'Beach Holidays', isActive: true, _count: { itineraries: 1 } },
     { id: '3', name: 'Cultural Tours', isActive: true, _count: { itineraries: 0 } },
     { id: '4', name: 'Wildlife', isActive: true, _count: { itineraries: 0 } },
-    { id: '5', name: 'Pilgrimage', isActive: true, _count: { itineraries: 0 } }
+    { id: '5', name: 'Pilgrimage', isActive: true, _count: { itineraries: 0 } },
+    { id: 'unknown', name: 'Unknown Category', isActive: false, _count: { itineraries: 0 } }
   ];
 }
 

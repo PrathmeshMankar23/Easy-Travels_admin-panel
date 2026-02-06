@@ -123,6 +123,17 @@ export default function DestinationsPage() {
     }
     initializeStorage();
     loadData();
+
+    // Listen for storage updates from other components
+    const handleStorageUpdate = () => {
+      loadData();
+    };
+
+    window.addEventListener('storage-updated', handleStorageUpdate);
+    
+    return () => {
+      window.removeEventListener('storage-updated', handleStorageUpdate);
+    };
   }, [router]);
 
   const loadData = () => {
@@ -136,6 +147,15 @@ export default function DestinationsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this destination?')) return;
     itineraryStorage.deleteItinerary(id);
+    
+    // Trigger storage update event to notify other pages
+    window.dispatchEvent(new CustomEvent('storage-updated', { 
+      detail: { 
+        type: 'itineraries', 
+        data: itineraryStorage.getItineraries() 
+      } 
+    }));
+    
     setDestinations(destinations.filter(item => item.id !== id));
   };
 
@@ -162,6 +182,14 @@ export default function DestinationsPage() {
     } else {
       itineraryStorage.addItinerary(destinationData);
     }
+    
+    // Trigger storage update event to notify other pages
+    window.dispatchEvent(new CustomEvent('storage-updated', { 
+      detail: { 
+        type: 'itineraries', 
+        data: itineraryStorage.getItineraries() 
+      } 
+    }));
     
     loadData();
     setFormData(initialFormState);
